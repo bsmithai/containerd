@@ -627,6 +627,7 @@ type RestoreOpts struct {
 	NoPivot       bool
 	ConsoleSocket ConsoleSocket
 	ExtraArgs     []string
+	SandboxID     string
 }
 
 func (o *RestoreOpts) args() ([]string, error) {

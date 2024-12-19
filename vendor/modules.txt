@@ -1,3 +1,12 @@
+# buf.build/gen/go/cedana/gpu/protocolbuffers/go v1.34.2-20241203191352-2167379de17d.2
+## explicit; go 1.20
+buf.build/gen/go/cedana/gpu/protocolbuffers/go/cedanagpu
+# buf.build/gen/go/cedana/task/grpc/go v1.5.1-20241203191352-12c25eb032cd.1
+## explicit; go 1.19
+buf.build/gen/go/cedana/task/grpc/go/_gogrpc
+# buf.build/gen/go/cedana/task/protocolbuffers/go v1.34.2-20241203191352-12c25eb032cd.2
+## explicit; go 1.20
+buf.build/gen/go/cedana/task/protocolbuffers/go
 # dario.cat/mergo v1.0.1
 ## explicit; go 1.13
 dario.cat/mergo
@@ -68,6 +77,30 @@ github.com/Microsoft/hcsshim/pkg/ociwclayer/cim
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
+# github.com/cedana/runc v1.10.3
+## explicit; go 1.22
+github.com/cedana/runc/libcontainer
+github.com/cedana/runc/libcontainer/apparmor
+github.com/cedana/runc/libcontainer/capabilities
+github.com/cedana/runc/libcontainer/cgroups
+github.com/cedana/runc/libcontainer/cgroups/devices
+github.com/cedana/runc/libcontainer/cgroups/fs
+github.com/cedana/runc/libcontainer/cgroups/fs2
+github.com/cedana/runc/libcontainer/cgroups/fscommon
+github.com/cedana/runc/libcontainer/cgroups/manager
+github.com/cedana/runc/libcontainer/cgroups/systemd
+github.com/cedana/runc/libcontainer/configs
+github.com/cedana/runc/libcontainer/configs/validate
+github.com/cedana/runc/libcontainer/devices
+github.com/cedana/runc/libcontainer/intelrdt
+github.com/cedana/runc/libcontainer/keys
+github.com/cedana/runc/libcontainer/logs
+github.com/cedana/runc/libcontainer/seccomp
+github.com/cedana/runc/libcontainer/seccomp/patchbpf
+github.com/cedana/runc/libcontainer/system
+github.com/cedana/runc/libcontainer/userns
+github.com/cedana/runc/libcontainer/utils
+github.com/cedana/runc/types
 # github.com/cenkalti/backoff/v4 v4.3.0
 ## explicit; go 1.18
 github.com/cenkalti/backoff/v4
@@ -77,20 +110,26 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.3.0
 ## explicit; go 1.21
 github.com/checkpoint-restore/checkpointctl/lib
+# github.com/checkpoint-restore/go-criu/v6 v6.3.0
+## explicit; go 1.16
+github.com/checkpoint-restore/go-criu/v6
+github.com/checkpoint-restore/go-criu/v6/rpc
 # github.com/checkpoint-restore/go-criu/v7 v7.2.0
 ## explicit; go 1.20
 github.com/checkpoint-restore/go-criu/v7
 github.com/checkpoint-restore/go-criu/v7/rpc
-# github.com/cilium/ebpf v0.16.0
-## explicit; go 1.21
+# github.com/cilium/ebpf v0.17.0
+## explicit; go 1.22
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
 github.com/cilium/ebpf/btf
 github.com/cilium/ebpf/internal
 github.com/cilium/ebpf/internal/kallsyms
 github.com/cilium/ebpf/internal/kconfig
+github.com/cilium/ebpf/internal/linux
 github.com/cilium/ebpf/internal/sys
 github.com/cilium/ebpf/internal/sysenc
+github.com/cilium/ebpf/internal/testutils/fdtrace
 github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
@@ -240,9 +279,12 @@ github.com/containers/ocicrypt/utils/keyprovider
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/daemon
 github.com/coreos/go-systemd/v22/dbus
-# github.com/cpuguy83/go-md2man/v2 v2.0.5
-## explicit; go 1.11
+# github.com/cpuguy83/go-md2man/v2 v2.0.6
+## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/cyphar/filepath-securejoin v0.3.6
+## explicit; go 1.18
+github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -390,6 +432,9 @@ github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.2
 ## explicit; go 1.12
 github.com/modern-go/reflect2
+# github.com/mrunalp/fileutils v0.5.1
+## explicit; go 1.13
+github.com/mrunalp/fileutils
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
@@ -454,6 +499,9 @@ github.com/prometheus/procfs/internal/util
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
+# github.com/seccomp/libseccomp-golang v0.10.0
+## explicit; go 1.14
+github.com/seccomp/libseccomp-golang
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
@@ -482,7 +530,7 @@ github.com/urfave/cli/v2
 ## explicit; go 1.12
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.4
+# github.com/vishvananda/netns v0.0.5
 ## explicit; go 1.17
 github.com/vishvananda/netns
 # github.com/x448/float16 v0.8.4
@@ -581,13 +629,10 @@ golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
-# golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
-## explicit; go 1.22.0
-golang.org/x/exp/constraints
 # golang.org/x/mod v0.22.0
 ## explicit; go 1.22.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.30.0
+# golang.org/x/net v0.33.0
 ## explicit; go 1.18
 golang.org/x/net/bpf
 golang.org/x/net/html
@@ -612,6 +657,7 @@ golang.org/x/sync/semaphore
 # golang.org/x/sys v0.28.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
+golang.org/x/sys/execabs
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -631,6 +677,8 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.3.0
 ## explicit
 golang.org/x/time/rate
+# golang.org/x/tools v0.27.0
+## explicit; go 1.22.0
 # google.golang.org/genproto/googleapis/api v0.0.0-20241015192408-796eee8c2d53
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/api/httpbody
@@ -705,7 +753,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.35.2
+# google.golang.org/protobuf v1.36.0
 ## explicit; go 1.21
 google.golang.org/protobuf/compiler/protogen
 google.golang.org/protobuf/encoding/protodelim
@@ -730,6 +778,7 @@ google.golang.org/protobuf/internal/genid
 google.golang.org/protobuf/internal/impl
 google.golang.org/protobuf/internal/order
 google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/protolazy
 google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version

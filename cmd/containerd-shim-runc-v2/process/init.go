@@ -32,6 +32,7 @@ import (
 
 	"github.com/containerd/console"
 	"github.com/containerd/containerd/v2/core/mount"
+	"github.com/containerd/containerd/v2/internal/cri/annotations"
 	google_protobuf "github.com/containerd/containerd/v2/pkg/protobuf/types"
 	"github.com/containerd/containerd/v2/pkg/stdio"
 	"github.com/containerd/fifo"
@@ -106,6 +107,21 @@ func New(id string, runtime *runc.Runc, stdio stdio.Stdio) *Init {
 	return p
 }
 
+func readSpecJSON[T any](path string, spec *T) error {
+	configData, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Println("Error reading config.json:", err)
+		return err
+	}
+
+	if err := json.Unmarshal(configData, &spec); err != nil {
+		fmt.Println("Error decoding config.json:", err)
+		return err
+	}
+
+	return nil
+}
+
 // Create the process with the provided config
 func (p *Init) Create(ctx context.Context, r *CreateConfig) error {
 	var (
@@ -113,6 +129,7 @@ func (p *Init) Create(ctx context.Context, r *CreateConfig) error {
 		socket  *runc.Socket
 		pio     *processIO
 		pidFile = newPidFile(p.Bundle)
+		spec    specs.Spec
 	)
 
 	if r.Terminal {
@@ -126,6 +143,18 @@ func (p *Init) Create(ctx context.Context, r *CreateConfig) error {
 		}
 		p.io = pio
 	}
+
+	configPath := filepath.Join(r.Bundle, "config.json")
+	if err := readSpecJSON(configPath, &spec); err != nil {
+		return err
+	}
+
+	if value, exists := spec.Annotations["CEDANA_MANAGED"]; exists && value != "" {
+		r.Checkpoint = value
+		r.SandboxID = spec.Annotations[annotations.SandboxID]
+		return p.createExternalCheckpointedState(r, pidFile)
+	}
+
 	if r.Checkpoint != "" {
 		return p.createCheckpointedState(r, pidFile)
 	}
@@ -181,6 +210,30 @@ func (p *Init) openStdin(path string) error {
 	}
 	p.stdin = sc
 	p.closers = append(p.closers, sc)
+	return nil
+}
+
+func (p *Init) createExternalCheckpointedState(r *CreateConfig, pidFile *pidFile) error {
+	opts := &runc.RestoreOpts{
+		CheckpointOpts: runc.CheckpointOpts{
+			ImagePath:  r.Checkpoint,
+			WorkDir:    p.CriuWorkPath,
+			ParentPath: r.ParentCheckpoint,
+		},
+		PidFile:     pidFile.Path(),
+		NoPivot:     p.NoPivotRoot,
+		NoSubreaper: true,
+		SandboxID:   r.SandboxID,
+	}
+
+	if p.io != nil {
+		opts.IO = p.io.IO()
+	}
+
+	p.initState = &createdExternalCheckpointState{
+		p:    p,
+		opts: opts,
+	}
 	return nil
 }
 

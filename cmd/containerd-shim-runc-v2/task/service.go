@@ -230,6 +230,7 @@ func (s *service) Create(ctx context.Context, r *taskAPI.CreateTaskRequest) (_ *
 	s.lifecycleMu.Unlock()
 	defer cleanup()
 
+	// TODO read from dumped spec.json
 	container, err := runc.NewContainer(ctx, s.platform, r)
 	if err != nil {
 		return nil, err
