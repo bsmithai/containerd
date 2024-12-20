@@ -22,11 +22,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 
 	taskgrpc "buf.build/gen/go/cedana/task/grpc/go/_gogrpc"
 	task "buf.build/gen/go/cedana/task/protocolbuffers/go"
-	"github.com/cedana/runc/libcontainer"
 	google_protobuf "github.com/containerd/containerd/protobuf/types"
 	runc "github.com/containerd/go-runc"
 	"github.com/sirupsen/logrus"
@@ -171,9 +169,8 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	p := s.p
 	sio := p.stdio
 	var (
-		err       error
-		socket    *runc.Socket
-		baseState libcontainer.BaseState
+		err    error
+		socket *runc.Socket
 	)
 	if sio.Terminal {
 		if socket, err = runc.NewTempConsoleSocket(); err != nil {
@@ -187,10 +184,6 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 		return err
 	}
 	runcRoot := "/run/containerd/runc/k8s.io"
-	stateJsonPath := filepath.Join(runcRoot, s.opts.SandboxID)
-	if err := readSpecJSON(stateJsonPath, &baseState); err != nil {
-		return err
-	}
 	runcOpts := &task.RuncOpts{
 		Root:          runcRoot,
 		Bundle:        p.Bundle,
