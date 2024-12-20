@@ -304,8 +304,6 @@ func run(ctx context.Context, manager Manager, config Config) error {
 		return nil
 	}
 
-	time.Sleep(60 * time.Second)
-
 	if !config.NoSetupLogger {
 		ctx, err = setLogger(ctx, id)
 		if err != nil {
