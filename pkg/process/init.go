@@ -149,7 +149,7 @@ func (p *Init) Create(ctx context.Context, r *CreateConfig) error {
 
 	cedanaCheckpoint := true
 	if cedanaCheckpoint {
-		r.Checkpoint = "/tmp/test"
+		r.Checkpoint = "/tmp/test.tar"
 		r.SandboxID = spec.Annotations[annotations.SandboxID]
 		return p.createExternalCheckpointedState(r, pidFile)
 	}
