@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	taskgrpc "buf.build/gen/go/cedana/task/grpc/go/_gogrpc"
 	task "buf.build/gen/go/cedana/task/protocolbuffers/go"
@@ -192,24 +191,12 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	if err := readSpecJSON(stateJsonPath, &baseState); err != nil {
 		return err
 	}
-	var sandboxBundle string
-	for _, label := range baseState.Config.Labels {
-		if strings.HasPrefix(label, "bundle=") {
-			sandboxBundle = strings.TrimPrefix(label, "bundle=")
-			break
-		}
-	}
-	pausePidArgs := &task.RuncGetPausePidArgs{
-		BundlePath: sandboxBundle,
-	}
-	pidResp, err := cts.taskService.RuncGetPausePid(ctx, pausePidArgs)
 	runcOpts := &task.RuncOpts{
 		Root:          runcRoot,
 		Bundle:        p.Bundle,
 		ConsoleSocket: "",
 		Detach:        true,
 		ContainerID:   p.id,
-		NetPid:        int32(pidResp.PausePid),
 	}
 	restoreArgs := &task.RuncRestoreArgs{
 		ImagePath: s.opts.CheckpointOpts.ImagePath,
