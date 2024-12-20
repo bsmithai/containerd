@@ -188,7 +188,7 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	}
 	runcRoot := "/run/containerd/runc/k8s.io"
 
-	stateJsonPath := filepath.Join(runcRoot, s.opts.SandboxID)
+	stateJsonPath := filepath.Join(runcRoot, s.opts.SandboxID, "state.json")
 	if err := readSpecJSON(stateJsonPath, &baseSandboxState); err != nil {
 		return err
 	}
