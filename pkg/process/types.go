@@ -40,6 +40,7 @@ type CreateConfig struct {
 	Stderr           string
 	Checkpoint       string
 	ParentCheckpoint string
+	SandboxID        string
 	Options          *google_protobuf.Any
 }
 

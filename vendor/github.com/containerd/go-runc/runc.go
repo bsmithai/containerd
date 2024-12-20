@@ -544,6 +544,7 @@ type RestoreOpts struct {
 	NoSubreaper   bool
 	NoPivot       bool
 	ConsoleSocket ConsoleSocket
+	SandboxID     string
 }
 
 func (o *RestoreOpts) args() ([]string, error) {

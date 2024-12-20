@@ -22,10 +22,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 
+	taskgrpc "buf.build/gen/go/cedana/task/grpc/go/_gogrpc"
+	task "buf.build/gen/go/cedana/task/protocolbuffers/go"
+	"github.com/cedana/runc/libcontainer"
 	google_protobuf "github.com/containerd/containerd/protobuf/types"
 	runc "github.com/containerd/go-runc"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type initState interface {
@@ -106,6 +113,161 @@ func (s *createdState) Exec(ctx context.Context, path string, r *ExecConfig) (Pr
 }
 
 func (s *createdState) Status(ctx context.Context) (string, error) {
+	return "created", nil
+}
+
+type createdExternalCheckpointState struct {
+	p    *Init
+	opts *runc.RestoreOpts
+}
+
+func (s *createdExternalCheckpointState) transition(name string) error {
+	switch name {
+	case "running":
+		s.p.initState = &runningState{p: s.p}
+	case "stopped":
+		s.p.initState = &stoppedState{p: s.p}
+	case "deleted":
+		s.p.initState = &deletedState{}
+	default:
+		return fmt.Errorf("invalid state transition %q to %q", stateName(s), name)
+	}
+	return nil
+}
+func (s *createdExternalCheckpointState) Pause(ctx context.Context) error {
+	return errors.New("cannot pause task in created state")
+}
+func (s *createdExternalCheckpointState) Resume(ctx context.Context) error {
+	return errors.New("cannot resume task in created state")
+}
+func (s *createdExternalCheckpointState) Update(ctx context.Context, r *google_protobuf.Any) error {
+	return s.p.update(ctx, r)
+}
+func (s *createdExternalCheckpointState) Checkpoint(ctx context.Context, r *CheckpointConfig) error {
+	return errors.New("cannot checkpoint a task in created state")
+}
+
+type ServiceClient struct {
+	taskService taskgrpc.TaskServiceClient
+	taskConn    *grpc.ClientConn
+}
+
+func NewClient(port uint32) (*ServiceClient, error) {
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	address := fmt.Sprintf("%s:%d", "0.0.0.0", port)
+	taskConn, err := grpc.Dial(address, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
+	}
+	// Create the client using the generated client code
+	taskClient := taskgrpc.NewTaskServiceClient(taskConn)
+	client := &ServiceClient{
+		taskService: taskClient,
+		taskConn:    taskConn,
+	}
+	return client, nil
+}
+func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
+	p := s.p
+	sio := p.stdio
+	var (
+		err       error
+		socket    *runc.Socket
+		baseState libcontainer.BaseState
+	)
+	if sio.Terminal {
+		if socket, err = runc.NewTempConsoleSocket(); err != nil {
+			return fmt.Errorf("failed to create OCI runtime console socket: %w", err)
+		}
+		defer socket.Close()
+		s.opts.ConsoleSocket = socket
+	}
+	cts, err := NewClient(8080)
+	if err != nil {
+		return err
+	}
+	runcRoot := "/run/containerd/runc/k8s.io"
+	stateJsonPath := filepath.Join(runcRoot, s.opts.SandboxID)
+	if err := readSpecJSON(stateJsonPath, &baseState); err != nil {
+		return err
+	}
+	var sandboxBundle string
+	for _, label := range baseState.Config.Labels {
+		if strings.HasPrefix(label, "bundle=") {
+			sandboxBundle = strings.TrimPrefix(label, "bundle=")
+			break
+		}
+	}
+	pausePidArgs := &task.RuncGetPausePidArgs{
+		BundlePath: sandboxBundle,
+	}
+	pidResp, err := cts.taskService.RuncGetPausePid(ctx, pausePidArgs)
+	runcOpts := &task.RuncOpts{
+		Root:          runcRoot,
+		Bundle:        p.Bundle,
+		ConsoleSocket: "",
+		Detach:        true,
+		ContainerID:   p.id,
+		NetPid:        int32(pidResp.PausePid),
+	}
+	restoreArgs := &task.RuncRestoreArgs{
+		ImagePath: s.opts.CheckpointOpts.ImagePath,
+		Opts:      runcOpts,
+		CriuOpts: &task.CriuOpts{
+			TcpClose: true,
+		},
+	}
+	_, err = cts.taskService.RuncRestore(ctx, restoreArgs)
+	if err != nil {
+		return err
+	}
+	if sio.Stdin != "" {
+		if err := p.openStdin(sio.Stdin); err != nil {
+			return fmt.Errorf("failed to open stdin fifo %s: %w", sio.Stdin, err)
+		}
+	}
+	if socket != nil {
+		console, err := socket.ReceiveMaster()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve console master: %w", err)
+		}
+		console, err = p.Platform.CopyConsole(ctx, console, p.id, sio.Stdin, sio.Stdout, sio.Stderr, &p.wg)
+		if err != nil {
+			return fmt.Errorf("failed to start console copy: %w", err)
+		}
+		p.console = console
+	} else {
+		if err := p.io.Copy(ctx, &p.wg); err != nil {
+			return fmt.Errorf("failed to start io pipe copy: %w", err)
+		}
+	}
+	pid, err := runc.ReadPidFile(s.opts.PidFile)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve OCI runtime container pid: %w", err)
+	}
+	p.pid = pid
+	return s.transition("running")
+}
+func (s *createdExternalCheckpointState) Delete(ctx context.Context) error {
+	if err := s.p.delete(ctx); err != nil {
+		return err
+	}
+	return s.transition("deleted")
+}
+func (s *createdExternalCheckpointState) Kill(ctx context.Context, sig uint32, all bool) error {
+	return s.p.kill(ctx, sig, all)
+}
+func (s *createdExternalCheckpointState) SetExited(status int) {
+	s.p.setExited(status)
+	if err := s.transition("stopped"); err != nil {
+		panic(err)
+	}
+}
+func (s *createdExternalCheckpointState) Exec(ctx context.Context, path string, r *ExecConfig) (Process, error) {
+	return nil, errors.New("cannot exec in a created state")
+}
+func (s *createdExternalCheckpointState) Status(ctx context.Context) (string, error) {
 	return "created", nil
 }
 
