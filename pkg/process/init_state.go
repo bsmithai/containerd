@@ -236,7 +236,7 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 			return fmt.Errorf("failed to start io pipe copy: %w", err)
 		}
 	}
-	pid, err := runc.ReadPidFile(s.opts.PidFile)
+	pid, err = runc.ReadPidFile(s.opts.PidFile)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve OCI runtime container pid: %w", err)
 	}
