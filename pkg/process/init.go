@@ -146,8 +146,10 @@ func (p *Init) Create(ctx context.Context, r *CreateConfig) error {
 	if err := readSpecJSON(configPath, &spec); err != nil {
 		return err
 	}
-	if value, exists := spec.Annotations["CEDANA_MANAGED"]; exists && value != "" {
-		r.Checkpoint = value
+
+	cedanaCheckpoint := true
+	if cedanaCheckpoint {
+		r.Checkpoint = "/tmp/test"
 		r.SandboxID = spec.Annotations[annotations.SandboxID]
 		return p.createExternalCheckpointedState(r, pidFile)
 	}
