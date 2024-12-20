@@ -22,11 +22,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"strconv"
+	"path/filepath"
 
 	taskgrpc "buf.build/gen/go/cedana/task/grpc/go/_gogrpc"
 	task "buf.build/gen/go/cedana/task/protocolbuffers/go"
+	"github.com/cedana/runc/libcontainer"
 	google_protobuf "github.com/containerd/containerd/protobuf/types"
 	runc "github.com/containerd/go-runc"
 	"github.com/sirupsen/logrus"
@@ -171,8 +171,9 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	p := s.p
 	sio := p.stdio
 	var (
-		err    error
-		socket *runc.Socket
+		err              error
+		socket           *runc.Socket
+		baseSandboxState libcontainer.BaseState
 	)
 	if sio.Terminal {
 		if socket, err = runc.NewTempConsoleSocket(); err != nil {
@@ -187,14 +188,9 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	}
 	runcRoot := "/run/containerd/runc/k8s.io"
 
-	pidBytes, err := os.ReadFile(s.opts.PidFile)
-	if err != nil {
-		return fmt.Errorf("Unable to get sandbox pid, %s", err.Error())
-	}
-
-	pid, err := strconv.Atoi(string(pidBytes))
-	if err != nil {
-		return fmt.Errorf("Unable to get sandbox pid, %s", err.Error())
+	stateJsonPath := filepath.Join(runcRoot, s.opts.SandboxID)
+	if err := readSpecJSON(stateJsonPath, &baseSandboxState); err != nil {
+		return err
 	}
 
 	runcOpts := &task.RuncOpts{
@@ -203,7 +199,7 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 		ConsoleSocket: "",
 		Detach:        true,
 		ContainerID:   p.id,
-		NetPid:        int32(pid),
+		NetPid:        int32(baseSandboxState.InitProcessPid),
 	}
 	restoreArgs := &task.RuncRestoreArgs{
 		ImagePath: s.opts.CheckpointOpts.ImagePath,
@@ -236,7 +232,7 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 			return fmt.Errorf("failed to start io pipe copy: %w", err)
 		}
 	}
-	pid, err = runc.ReadPidFile(s.opts.PidFile)
+	pid, err := runc.ReadPidFile(s.opts.PidFile)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve OCI runtime container pid: %w", err)
 	}
