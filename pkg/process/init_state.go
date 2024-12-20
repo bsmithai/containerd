@@ -22,6 +22,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 
 	taskgrpc "buf.build/gen/go/cedana/task/grpc/go/_gogrpc"
 	task "buf.build/gen/go/cedana/task/protocolbuffers/go"
@@ -184,12 +186,24 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 		return err
 	}
 	runcRoot := "/run/containerd/runc/k8s.io"
+
+	pidBytes, err := os.ReadFile(s.opts.PidFile)
+	if err != nil {
+		return fmt.Errorf("Unable to get sandbox pid, %s", err.Error())
+	}
+
+	pid, err := strconv.Atoi(string(pidBytes))
+	if err != nil {
+		return fmt.Errorf("Unable to get sandbox pid, %s", err.Error())
+	}
+
 	runcOpts := &task.RuncOpts{
 		Root:          runcRoot,
 		Bundle:        p.Bundle,
 		ConsoleSocket: "",
 		Detach:        true,
 		ContainerID:   p.id,
+		NetPid:        int32(pid),
 	}
 	restoreArgs := &task.RuncRestoreArgs{
 		ImagePath: s.opts.CheckpointOpts.ImagePath,
