@@ -22,11 +22,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	taskgrpc "buf.build/gen/go/cedana/task/grpc/go/_gogrpc"
 	task "buf.build/gen/go/cedana/task/protocolbuffers/go"
 	"github.com/cedana/runc/libcontainer"
+	"github.com/containerd/containerd/pkg/atomicfile"
 	google_protobuf "github.com/containerd/containerd/protobuf/types"
 	runc "github.com/containerd/go-runc"
 	"github.com/sirupsen/logrus"
@@ -167,6 +169,24 @@ func NewClient(port uint32) (*ServiceClient, error) {
 	}
 	return client, nil
 }
+
+func WritePidFile(path string, pid int) error {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	f, err := atomicfile.New(path, 0o644)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(f, "%d", pid)
+	if err != nil {
+		f.Cancel()
+		return err
+	}
+	return f.Close()
+}
+
 func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	p := s.p
 	sio := p.stdio
@@ -208,10 +228,16 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 			TcpClose: true,
 		},
 	}
-	_, err = cts.taskService.RuncRestore(ctx, restoreArgs)
+	restoreResp, err := cts.taskService.RuncRestore(ctx, restoreArgs)
 	if err != nil {
 		return err
 	}
+
+	pid := fmt.Sprintf("%d", int(restoreResp.State.PID))
+	if err := os.WriteFile(s.opts.PidFile, []byte(pid), 0o644); err != nil {
+		return err
+	}
+
 	if sio.Stdin != "" {
 		if err := p.openStdin(sio.Stdin); err != nil {
 			return fmt.Errorf("failed to open stdin fifo %s: %w", sio.Stdin, err)
