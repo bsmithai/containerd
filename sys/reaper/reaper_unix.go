@@ -91,7 +91,7 @@ type Monitor struct {
 	subscribers map[chan runc.Exit]*subscriber
 }
 
-func (m *Monitor) StartExternal() (chan runc.Exit, error) {
+func (m *Monitor) StartExternal(c *os.Process) (chan runc.Exit, error) {
 	ec := m.Subscribe()
 	return ec, nil
 }
