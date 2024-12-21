@@ -234,7 +234,6 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	}
 
 	process, err := os.FindProcess(baseSandboxState.InitProcessPid)
-	process.Wait()
 
 	ec, err := runc.Monitor.StartExternal(process)
 	if err != nil {
