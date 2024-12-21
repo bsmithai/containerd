@@ -228,12 +228,22 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 			TcpClose: true,
 		},
 	}
-	restoreResp, err := cts.taskService.RuncRestore(ctx, restoreArgs)
+	_, err = cts.taskService.RuncRestore(ctx, restoreArgs)
 	if err != nil {
 		return err
 	}
 
-	formattedPid := fmt.Sprintf("%d", int(restoreResp.State.PID))
+	process, err := os.FindProcess(baseSandboxState.InitProcessPid)
+	process.Wait()
+
+	ec, err := runc.Monitor.StartExternal(process)
+	if err != nil {
+		return err
+	}
+
+	runc.Monitor.WaitExternal(process, ec)
+
+	formattedPid := fmt.Sprintf("%d", baseSandboxState.InitProcessPid)
 	if err := os.WriteFile(s.opts.PidFile, []byte(formattedPid), 0o644); err != nil {
 		return err
 	}

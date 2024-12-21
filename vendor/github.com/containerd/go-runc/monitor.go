@@ -17,6 +17,7 @@
 package runc
 
 import (
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -38,11 +39,42 @@ type Exit struct {
 // These methods should match the methods exposed by exec.Cmd to provide
 // a consistent experience for the caller
 type ProcessMonitor interface {
+	StartExternal(*os.Process) (chan Exit, error)
+	WaitExternal(*os.Process, chan Exit) (int, error)
 	Start(*exec.Cmd) (chan Exit, error)
 	Wait(*exec.Cmd, chan Exit) (int, error)
 }
 
 type defaultMonitor struct {
+}
+
+func (m *defaultMonitor) StartExternal(c *os.Process) (chan Exit, error) {
+
+	ec := make(chan Exit, 1)
+	go func() {
+		var status int
+		_, err := c.Wait()
+		if err != nil {
+			status = 255
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+					status = ws.ExitStatus()
+				}
+			}
+		}
+		ec <- Exit{
+			Timestamp: time.Now(),
+			Pid:       c.Pid,
+			Status:    status,
+		}
+		close(ec)
+	}()
+	return ec, nil
+}
+
+func (m *defaultMonitor) WaitExternal(c *os.Process, ec chan Exit) (int, error) {
+	e := <-ec
+	return e.Status, nil
 }
 
 func (m *defaultMonitor) Start(c *exec.Cmd) (chan Exit, error) {

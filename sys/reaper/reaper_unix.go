@@ -21,6 +21,7 @@ package reaper
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -88,6 +89,25 @@ type Monitor struct {
 	sync.Mutex
 
 	subscribers map[chan runc.Exit]*subscriber
+}
+
+func (m *Monitor) StartExternal() (chan runc.Exit, error) {
+	ec := m.Subscribe()
+	return ec, nil
+}
+
+func (m *Monitor) WaitExternal(c *os.Process, ec chan runc.Exit) (int, error) {
+	for e := range ec {
+		if e.Pid == c.Pid {
+			// make sure we flush all IO
+			c.Wait()
+			m.Unsubscribe(ec)
+			return e.Status, nil
+		}
+	}
+	// return no such process if the ec channel is closed and no more exit
+	// events will be sent
+	return -1, ErrNoSuchProcess
 }
 
 // Start starts the command and registers the process with the reaper
