@@ -233,8 +233,8 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 		return err
 	}
 
-	pid := fmt.Sprintf("%d", int(restoreResp.State.PID))
-	if err := os.WriteFile(s.opts.PidFile, []byte(pid), 0o644); err != nil {
+	formattedPid := fmt.Sprintf("%d", int(restoreResp.State.PID))
+	if err := os.WriteFile(s.opts.PidFile, []byte(formattedPid), 0o644); err != nil {
 		return err
 	}
 
