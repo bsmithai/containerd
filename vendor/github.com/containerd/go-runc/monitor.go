@@ -49,19 +49,20 @@ type defaultMonitor struct {
 }
 
 func (m *defaultMonitor) StartExternal(c *os.Process) (chan Exit, error) {
-
 	ec := make(chan Exit, 1)
+
 	go func() {
 		var status int
-		_, err := c.Wait()
+		// Wait for the external process to exit
+		ps, err := c.Wait()
 		if err != nil {
-			status = 255
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-					status = ws.ExitStatus()
-				}
+			status = 255 // Default to 255 on error
+		} else {
+			if ws, ok := ps.Sys().(syscall.WaitStatus); ok {
+				status = ws.ExitStatus()
 			}
 		}
+
 		ec <- Exit{
 			Timestamp: time.Now(),
 			Pid:       c.Pid,
@@ -69,6 +70,7 @@ func (m *defaultMonitor) StartExternal(c *os.Process) (chan Exit, error) {
 		}
 		close(ec)
 	}()
+
 	return ec, nil
 }
 
