@@ -20,6 +20,7 @@ package process
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -187,6 +188,19 @@ func WritePidFile(path string, pid int) error {
 	return f.Close()
 }
 
+func readJSON[T any](path string, spec *T) error {
+	configData, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(configData, &spec); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 	p := s.p
 	sio := p.stdio
@@ -228,12 +242,13 @@ func (s *createdExternalCheckpointState) Start(ctx context.Context) error {
 			TcpClose: true,
 		},
 	}
-	restoreResp, err := cts.taskService.RuncRestore(ctx, restoreArgs)
+
+	_, err = cts.taskService.RuncRestore(ctx, restoreArgs)
 	if err != nil {
 		return err
 	}
 
-	process, err := os.FindProcess(int(restoreResp.State.PID))
+	process, err := os.FindProcess(baseSandboxState.InitProcessPid)
 
 	ec, err := runc.Monitor.StartExternal(process)
 	if err != nil {
